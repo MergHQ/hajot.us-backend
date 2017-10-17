@@ -2,36 +2,34 @@ package dao
 
 import (
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"time"
 	"../domain"
+	"errors"
 )
 
 type PostORMModel struct {
-	gorm.Model
 	Id uint `gorm:"primary_key"`
 	Content string
 	CreatedAt time.Time
 }
 
+func (pom PostORMModel) TableName() string {
+	return "posts"
+}
+
 type PostDao struct {
-	db *gorm.DB
+	Db *gorm.DB
 }
 
 func (dao PostDao) Init() {
-	db, err := gorm.Open("postgres", "")
-	dao.db = db
-	if err != nil {
-		panic("failed to connect to database")
-	}
+	dao.Db.AutoMigrate(&PostORMModel{})
 }
 
-func (dao PostDao) FindOne(id uint) domain.Post {
+func (dao PostDao) FindOne(id uint) (domain.Post, error) {
 	var post PostORMModel
-	dao.db.First(&post, id)
-	if post != nil {
-		return domain.Post{id: post.Id, content: post.Content, timestamp: post.CreatedAt}
-	} else {
-		return nil
+	dao.Db.First(&post, id)
+	if &post == nil {
+		return domain.Post{}, errors.New("user not found")
 	}
+	return domain.Post{Id: post.Id, Content: post.Content, Timestamp: post.CreatedAt}, nil
 }

@@ -1,7 +1,9 @@
 package domain
 
+import "time"
+
 type Post struct {
-	id uint
-	content string
-	timestamp string
+	Id uint
+	Content string
+	Timestamp time.Time
 }

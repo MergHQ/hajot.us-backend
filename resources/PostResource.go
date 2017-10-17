@@ -2,20 +2,14 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
-	"io"
 	"../dao"
-	"../domain"
+	"strconv"
+	"../utils"
 )
 
 type PostResource struct {
-	dao dao.PostDao
+	Dao dao.PostDao
 
-}
-
-type Post struct {
-	Id int
-	content string
-	timestamp string
 }
 
 func (postRes PostResource) Register(container* restful.Container) {
@@ -33,7 +27,16 @@ func (postRes PostResource) Register(container* restful.Container) {
 }
 
 func (postRes PostResource) FindPost(request *restful.Request, response *restful.Response) {
-
+	postId, parseError := strconv.ParseUint(request.PathParameter("post-id"), 10, 1)
+	if parseError != nil {
+		panic("string parse error")
+	}
+	user, err := postRes.Dao.FindOne(uint(postId))
+	apiResponse := utils.ApiResponse{Message: "Ok", Data: user}
+	if err == nil {
+		response.WriteEntity(apiResponse)
+	}
+	
 }
 
 func (postRes PostResource) CreatePost(request *restful.Request, response *restful.Response) {

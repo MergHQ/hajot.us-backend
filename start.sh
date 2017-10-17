@@ -1,0 +1,2 @@
+go build
+./backend.exe
