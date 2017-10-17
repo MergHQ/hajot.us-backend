@@ -5,6 +5,7 @@ import (
 	"../dao"
 	"strconv"
 	"../utils"
+	"../domain"
 )
 
 type PostResource struct {
@@ -20,7 +21,7 @@ func (postRes PostResource) Register(container* restful.Container) {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/{post-id}").To(postRes.FindPost))
-	ws.Route(ws.POST("").To(postRes.CreatePost))
+	ws.Route(ws.POST("").To(postRes.CreatePost).Reads(domain.Post{}))
 	ws.Route(ws.GET("").To(postRes.GetPosts))
 
 	container.Add(ws)
@@ -40,9 +41,24 @@ func (postRes PostResource) FindPost(request *restful.Request, response *restful
 }
 
 func (postRes PostResource) CreatePost(request *restful.Request, response *restful.Response) {
+	var post domain.Post
+	request.ReadEntity(&post)
+	apiResponse := utils.ApiResponse{Message: "Ok", Data: postRes.Dao.Create(post.Content)}
+	response.WriteEntity(apiResponse)
 
 }
 
 func (postRes PostResource) GetPosts(request *restful.Request, response *restful.Response) {
-
+	offset, parseError1 := strconv.Atoi(request.QueryParameter("offset"))
+	limit, parseError2 := strconv.Atoi(request.QueryParameter("limit"))
+	if parseError1 != nil || parseError2 != nil {
+		response.WriteEntity(utils.ApiResponse{Message: "Error"})
+		panic("error parsing query params")
+	}
+	posts, err := postRes.Dao.FindNAmount(int(offset), int(limit))
+	apiResponse := utils.ApiResponseArray{Message: "Ok", Data: posts}
+	if err == nil {
+		response.WriteEntity(apiResponse)
+	}
+	
 }

@@ -33,3 +33,24 @@ func (dao PostDao) FindOne(id uint) (domain.Post, error) {
 	}
 	return domain.Post{Id: post.Id, Content: post.Content, Timestamp: post.CreatedAt}, nil
 }
+
+func (dao PostDao) FindNAmount(offset int, amount int) ([]domain.Post, error) {
+	var ormPostList []PostORMModel;
+	dao.Db.Order("created_at desc").Find(&ormPostList).Offset(offset).Limit(amount)
+	if len(ormPostList) == 0 {
+		return nil, errors.New("no entries")
+	} 
+	
+	postList := make([]domain.Post, len(ormPostList))
+	for i := 0; i < len(ormPostList); i++ {
+		postList[i] = domain.Post{Id: ormPostList[i].Id, Content: ormPostList[i].Content, Timestamp: ormPostList[i].CreatedAt}
+	}
+	return postList, nil
+}
+
+func (dao PostDao) Create(content string) domain.Post {
+	post := PostORMModel{Content: content}
+	println(content, post.Content)
+	dao.Db.Create(&post)
+	return domain.Post{Id: post.Id, Content: post.Content, Timestamp: post.CreatedAt}
+}
