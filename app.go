@@ -8,10 +8,13 @@ import (
 	"./dao"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/joho/godotenv"
+	"os"
 )
 
 func main() {
 	println("Starting le web service...")
+	godotenv.Load();
 	wsContainer := restful.NewContainer()
 	wsContainer.Router(restful.CurlyRouter{})
 
@@ -31,7 +34,7 @@ func main() {
 }
 
 func createDatabaseConnection() *gorm.DB {
-	db, err := gorm.Open("postgres", "host=localhost user=hajotus dbname=hajotus sslmode=disable password=hajotus")
+	db, err := gorm.Open("postgres", os.Getenv("DB_CONNECTION_STRING"))
 	if err != nil {
 		println(err.Error)
 		panic("failed to connect to database *dies*")

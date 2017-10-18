@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"../utils"
 	"../domain"
+	"os"
+	"github.com/franela/goreq"
 )
 
 type PostResource struct {
@@ -21,16 +23,17 @@ func (postRes PostResource) Register(container* restful.Container) {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/{post-id}").To(postRes.FindPost))
-	ws.Route(ws.POST("").To(postRes.CreatePost).Reads(domain.Post{}))
+	ws.Route(ws.POST("").Filter(postRes.CheckCaptcha).To(postRes.CreatePost).Reads(domain.Post{}))
 	ws.Route(ws.GET("").To(postRes.GetPosts))
 
 	container.Add(ws)
 }
 
 func (postRes PostResource) FindPost(request *restful.Request, response *restful.Response) {
-	postId, parseError := strconv.ParseUint(request.PathParameter("post-id"), 10, 1)
+	postId, parseError := strconv.Atoi(request.PathParameter("post-id"))
 	if parseError != nil {
-		panic("string parse error")
+		response.WriteEntity(utils.ApiResponse{Message: "Error"})
+		return
 	}
 	user, err := postRes.Dao.FindOne(uint(postId))
 	apiResponse := utils.ApiResponse{Message: "Ok", Data: user}
@@ -38,6 +41,16 @@ func (postRes PostResource) FindPost(request *restful.Request, response *restful
 		response.WriteEntity(apiResponse)
 	}
 	
+}
+
+func (postRes PostResource) CheckCaptcha(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+	token := os.Getenv("RECAPTCHA_TOKEN")
+
+	res, err := goreq.Request{
+		Method: "POST",
+		Uri: "http://www.google.com",
+		Body: "{\"secret\":\"" + token + "\",\"response\":\"asd\"}",
+	}.Do()
 }
 
 func (postRes PostResource) CreatePost(request *restful.Request, response *restful.Response) {
@@ -53,12 +66,14 @@ func (postRes PostResource) GetPosts(request *restful.Request, response *restful
 	limit, parseError2 := strconv.Atoi(request.QueryParameter("limit"))
 	if parseError1 != nil || parseError2 != nil {
 		response.WriteEntity(utils.ApiResponse{Message: "Error"})
-		panic("error parsing query params")
+		return
 	}
 	posts, err := postRes.Dao.FindNAmount(int(offset), int(limit))
 	apiResponse := utils.ApiResponseArray{Message: "Ok", Data: posts}
 	if err == nil {
 		response.WriteEntity(apiResponse)
+	} else {
+		response.WriteEntity(utils.ApiResponse{Message: "Error"})
 	}
 	
 }

@@ -36,7 +36,7 @@ func (dao PostDao) FindOne(id uint) (domain.Post, error) {
 
 func (dao PostDao) FindNAmount(offset int, amount int) ([]domain.Post, error) {
 	var ormPostList []PostORMModel;
-	dao.Db.Order("created_at desc").Find(&ormPostList).Offset(offset).Limit(amount)
+	dao.Db.Order("created_at desc").Offset(offset).Limit(amount).Find(&ormPostList)
 	if len(ormPostList) == 0 {
 		return nil, errors.New("no entries")
 	} 
