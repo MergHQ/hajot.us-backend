@@ -4,7 +4,7 @@ import "../domain"
 
 type ApiResponse struct {
 	Message string
-	Data domain.Post
+	Data *domain.Post
 }
 
 type ApiResponseArray struct {

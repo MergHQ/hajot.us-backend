@@ -28,8 +28,8 @@ func (dao PostDao) Init() {
 func (dao PostDao) FindOne(id uint) (domain.Post, error) {
 	var post PostORMModel
 	dao.Db.First(&post, id)
-	if &post == nil {
-		return domain.Post{}, errors.New("user not found")
+	if len(post.Content) == 0 {
+		return domain.Post{}, errors.New("post not found")
 	}
 	return domain.Post{Id: post.Id, Content: post.Content, Timestamp: post.CreatedAt}, nil
 }
@@ -50,7 +50,6 @@ func (dao PostDao) FindNAmount(offset int, amount int) ([]domain.Post, error) {
 
 func (dao PostDao) Create(content string) domain.Post {
 	post := PostORMModel{Content: content}
-	println(content, post.Content)
 	dao.Db.Create(&post)
 	return domain.Post{Id: post.Id, Content: post.Content, Timestamp: post.CreatedAt}
 }

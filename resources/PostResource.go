@@ -32,31 +32,51 @@ func (postRes PostResource) Register(container* restful.Container) {
 func (postRes PostResource) FindPost(request *restful.Request, response *restful.Response) {
 	postId, parseError := strconv.Atoi(request.PathParameter("post-id"))
 	if parseError != nil {
+		response.WriteHeader(400)
 		response.WriteEntity(utils.ApiResponse{Message: "Error"})
 		return
 	}
-	user, err := postRes.Dao.FindOne(uint(postId))
-	apiResponse := utils.ApiResponse{Message: "Ok", Data: user}
+	post, err := postRes.Dao.FindOne(uint(postId))
+	apiResponse := utils.ApiResponse{Message: "Ok", Data: &post}
 	if err == nil {
 		response.WriteEntity(apiResponse)
+	} else {
+		response.WriteHeader(404)
+		response.WriteEntity(utils.ApiResponse{Message: "Not found"})
 	}
 	
 }
 
 func (postRes PostResource) CheckCaptcha(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 	token := os.Getenv("RECAPTCHA_TOKEN")
+	captchaResponse, noHeaderError := req.BodyParameter("")
+	if noHeaderError != nil {
+		apiResponse := utils.ApiResponse{Message: "Error"}
+		resp.WriteHeader(400)
+		resp.WriteEntity(apiResponse)
+		return
+	}
 
 	res, err := goreq.Request{
 		Method: "POST",
-		Uri: "http://www.google.com",
-		Body: "{\"secret\":\"" + token + "\",\"response\":\"asd\"}",
+		Uri: "https://www.google.com/recaptcha/api/siteverify",
+		Body: "{\"secret\":\"" + token + "\",\"response\":\"" + captchaResponse + "\"}",
 	}.Do()
+
+	if err != nil {
+		println(res.Body)
+	}
 }
 
 func (postRes PostResource) CreatePost(request *restful.Request, response *restful.Response) {
 	var post domain.Post
 	request.ReadEntity(&post)
-	apiResponse := utils.ApiResponse{Message: "Ok", Data: postRes.Dao.Create(post.Content)}
+	if len(post.Content) == 0 {
+		response.WriteEntity(utils.ApiResponse{Message: "Error", Data: &post})
+		return
+	}
+	post = postRes.Dao.Create(post.Content)
+	apiResponse := utils.ApiResponse{Message: "Ok", Data: &post}
 	response.WriteEntity(apiResponse)
 
 }
@@ -65,6 +85,9 @@ func (postRes PostResource) GetPosts(request *restful.Request, response *restful
 	offset, parseError1 := strconv.Atoi(request.QueryParameter("offset"))
 	limit, parseError2 := strconv.Atoi(request.QueryParameter("limit"))
 	if parseError1 != nil || parseError2 != nil {
+			println(offset, limit)
+
+		response.WriteHeader(400)
 		response.WriteEntity(utils.ApiResponse{Message: "Error"})
 		return
 	}
@@ -73,7 +96,8 @@ func (postRes PostResource) GetPosts(request *restful.Request, response *restful
 	if err == nil {
 		response.WriteEntity(apiResponse)
 	} else {
-		response.WriteEntity(utils.ApiResponse{Message: "Error"})
+		response.WriteHeader(404)
+		response.WriteEntity(utils.ApiResponse{Message: "Not found"})
 	}
 	
 }
